@@ -1,4 +1,4 @@
-require('dotenv').config({
+﻿require('dotenv').config({
   path: require('path').join(__dirname, '.env'),
 });
 
@@ -300,6 +300,46 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
+app.get('/api/payment-status/:checkoutRequestId', async (req, res) => {
+  try {
+    const { checkoutRequestId } = req.params;
+
+    const { data: teacher, error } = await supabase
+      .from('teachers')
+      .select('payment_status, mpesa_receipt, result_code, result_desc')
+      .eq('checkout_request_id', checkoutRequestId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('PAYMENT STATUS ERROR:', error);
+      return res.status(500).json({
+        success: false,
+        message: 'Could not check payment status.',
+      });
+    }
+
+    if (!teacher) {
+      return res.status(404).json({
+        success: false,
+        message: 'Registration payment record not found.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      paymentStatus: teacher.payment_status,
+      mpesaReceipt: teacher.mpesa_receipt,
+      resultCode: teacher.result_code,
+      resultDesc: teacher.result_desc,
+    });
+  } catch (error) {
+    console.error('PAYMENT STATUS ERROR:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Unable to check payment status.',
+    });
+  }
+});
 app.post('/api/mpesa/callback', async (req, res) => {
   try {
     console.log(
