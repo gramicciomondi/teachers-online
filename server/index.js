@@ -72,9 +72,25 @@ app.get('/', (req, res) => {
 
 app.post('/api/register', async (req, res) => {
   try {
-    const { fullName, phone, password, teacherLevel } = req.body;
+    const {
+      fullName,
+      phone,
+      password,
+      teacherLevel,
+      county,
+      subCounty,
+      school,
+    } = req.body;
 
-    if (!fullName || !phone || !password || !teacherLevel) {
+    if (
+      !fullName ||
+      !phone ||
+      !password ||
+      !teacherLevel ||
+      !county ||
+      !subCounty ||
+      !school
+    ) {
       return res.status(400).json({
         success: false,
         message: 'All registration fields are required.',
@@ -122,12 +138,8 @@ app.post('/api/register', async (req, res) => {
 
     const teacherId = existingTeacher?.id || crypto.randomUUID();
 
-    /*
-      Supabase Auth uses email/password.
-      We create an internal email from the teacher's phone.
-      The teacher will still use their phone number in the app.
-    */
-    const internalEmail = `${normalizedPhone}@teachers-online.local`;
+    const internalEmail =
+      `${normalizedPhone}@teachers-online.local`;
 
     let authUserId = teacherId;
 
@@ -141,6 +153,9 @@ app.post('/api/register', async (req, res) => {
             full_name: fullName.trim(),
             phone: normalizedPhone,
             teacher_level: teacherLevel,
+            county: county.trim(),
+            sub_county: subCounty.trim(),
+            school: school.trim(),
           },
         });
 
@@ -164,6 +179,9 @@ app.post('/api/register', async (req, res) => {
               full_name: fullName.trim(),
               phone: normalizedPhone,
               teacher_level: teacherLevel,
+              county: county.trim(),
+              sub_county: subCounty.trim(),
+              school: school.trim(),
             },
           }
         );
@@ -180,6 +198,9 @@ app.post('/api/register', async (req, res) => {
         full_name: fullName.trim(),
         phone: normalizedPhone,
         teacher_level: teacherLevel,
+        county: county.trim(),
+        sub_county: subCounty.trim(),
+        school: school.trim(),
         payment_status: 'pending',
         amount: 50,
         updated_at: new Date().toISOString(),
@@ -247,7 +268,8 @@ app.post('/api/register', async (req, res) => {
       });
     }
 
-    const checkoutRequestId = stkResponse.data.CheckoutRequestID;
+    const checkoutRequestId =
+      stkResponse.data.CheckoutRequestID;
 
     await supabase
       .from('teachers')
