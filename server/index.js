@@ -1,4 +1,4 @@
-﻿require('dotenv').config({
+require('dotenv').config({
   path: require('path').join(__dirname, '.env'),
 });
 
@@ -136,6 +136,20 @@ app.post('/api/register', async (req, res) => {
       });
     }
 
+    const { count: paidTeacherCount, error: countError } = await supabase
+      .from('teachers')
+      .select('id', { count: 'exact', head: true })
+      .eq('payment_status', 'paid');
+
+    if (countError) {
+      console.error('FOUNDING TEACHER COUNT ERROR:', countError);
+      return res.status(500).json({
+        success: false,
+        message: 'Could not check founding teacher availability.',
+      });
+    }
+
+    const foundingTeacherAvailable = (paidTeacherCount || 0) < 1000;
     const teacherId = existingTeacher?.id || crypto.randomUUID();
 
     const internalEmail =
@@ -201,8 +215,8 @@ app.post('/api/register', async (req, res) => {
         county: county.trim(),
         sub_county: subCounty.trim(),
         school: school.trim(),
-        payment_status: 'pending',
-        amount: 50,
+        payment_status: foundingTeacherAvailable ? 'paid' : 'pending',
+        amount: foundingTeacherAvailable ? 0 : 50,
         updated_at: new Date().toISOString(),
       });
 
@@ -212,6 +226,16 @@ app.post('/api/register', async (req, res) => {
       return res.status(500).json({
         success: false,
         message: 'Could not save teacher registration.',
+      });
+    }
+
+    if (foundingTeacherAvailable) {
+      return res.json({
+        success: true,
+        message: 'Founding Teacher registration successful. No payment is required.',
+        paymentRequired: false,
+        paymentStatus: 'paid',
+        amount: 0,
       });
     }
 
@@ -275,8 +299,8 @@ app.post('/api/register', async (req, res) => {
       .from('teachers')
       .update({
         checkout_request_id: checkoutRequestId,
-        payment_status: 'pending',
-        amount: 50,
+        payment_status: foundingTeacherAvailable ? 'paid' : 'pending',
+        amount: foundingTeacherAvailable ? 0 : 50,
         updated_at: new Date().toISOString(),
       })
       .eq('id', authUserId);
@@ -413,3 +437,9 @@ app.listen(PORT, () => {
     'Teachers Online API running on port ' + PORT
   );
 });
+
+
+
+
+
+
